@@ -106,10 +106,11 @@ if __name__ == "__main__":
             for i in range(count):
                 # Remaining workload
                 if av_jobs_count < 1:
+                    logging.warning("Worker overload, touch fish.")
                     break
-                logging.info("Make a sector.")
                 sp.call(["./lotus-miner", "sectors", "pledge"])
+                logging.info("Make a sector. (TODO: {todo}, Available: {av})".format(todo=i, av=av_jobs_count))
                 av_jobs_count -= 1
                 # Wait for add piece
-                time.sleep(900)
+                time.sleep(300)
         time.sleep(60)
