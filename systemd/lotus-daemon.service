@@ -1,0 +1,19 @@
+[Unit]
+Description=Lotus Daemon
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+ExecStart=/root/filecoin/lotus daemon
+
+Environment=FIL_PROOFS_PARAMETER_CACHE=/tank1/filecoin-proof-parameters
+Environment=LOTUS_PATH=/tank1/.lotus
+Environment=GOLOG_LOG_FMT="json"
+
+Restart=always
+RestartSec=10
+
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multiuser.target

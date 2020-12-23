@@ -1,0 +1,17 @@
+[Unit]
+Description=Lotus Miner
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+ExecStart=/root/filecoin/lotus-miner run
+PIDFile=/var/run/lotus-worker.pid
+EnvironmentFile=/root/filecoin/systemd-miner-env.conf
+
+Restart=always
+RestartSec=10
+
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multiuser.target
