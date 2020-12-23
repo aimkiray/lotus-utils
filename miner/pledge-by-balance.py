@@ -9,7 +9,7 @@ import logging
 
 auto_withdraw_balance = 5
 auto_pledge_balance = 5
-parallel_jobs = 5
+parallel_jobs = 20
 
 daemon_url = "http://127.0.0.1:1234/rpc/v0"
 daemon_token = "your daemon token here"
@@ -63,51 +63,53 @@ def call_any(target, method, params):
 
 
 if __name__ == "__main__":
-    # Check if miner's balance is ready for withdraw
-    miner_wallet = call_any("miner", "ActorAddress", None)["result"]
-    miner_balance_verbose = call_any("daemon", "StateMinerAvailableBalance", [miner_wallet, []])["result"]
-    miner_balance = int(int(miner_balance_verbose)/(10**18))
-    logging.info("Miner balance: " + str(miner_balance))
-    if miner_balance > auto_withdraw_balance:
-        # Withdraw balance, there is no RPC method
-        msg_id_verbose = sp.Popen(["./lotus-miner", "actor", "withdraw"], stdout=sp.PIPE, stderr=sp.PIPE).stdout
-        msg_id_verbose.wait()
-        msg_id = msg_id_verbose.readline().decode(encoding='UTF-8').strip().split(" ")[-1]
-        # Wait a moment please
-        sp.call(["./lotus", "state", "wait-msg", msg_id])
+    while True:
+        # Check if miner's balance is ready for withdraw
+        miner_wallet = call_any("miner", "ActorAddress", None)["result"]
+        miner_balance_verbose = call_any("daemon", "StateMinerAvailableBalance", [miner_wallet, []])["result"]
+        miner_balance = int(int(miner_balance_verbose)/(10**18))
+        logging.info("Miner balance: " + str(miner_balance))
+        if miner_balance > auto_withdraw_balance:
+            # Withdraw balance, there is no RPC method
+            msg_id_verbose = sp.Popen(["./lotus-miner", "actor", "withdraw"], stdout=sp.PIPE, stderr=sp.PIPE).stdout
+            msg_id_verbose.wait()
+            msg_id = msg_id_verbose.readline().decode(encoding='UTF-8').strip().split(" ")[-1]
+            # Wait a moment please
+            sp.call(["./lotus", "state", "wait-msg", msg_id])
 
-    # Check current jobs
-    pre_jobs_count = 0
-    cur_jobs_count = 0
-    av_jobs_count = 0
-    worker_jobs = call_any("miner", "WorkerJobs", None)["result"]
-    for key, jobs in worker_jobs.items():
-        # Miner
-        if key == "0":
-            continue
-        # Worker
-        for job in jobs:
-            cur_jobs_count += 1
-            if "precommit" in job["Task"]:
-                pre_jobs_count += 1
-        av_jobs_count += parallel_jobs - cur_jobs_count
-    logging.info("PreCommit jobs: " + str(pre_jobs_count))
+        # Check current jobs
+        pre_jobs_count = 0
+        cur_jobs_count = 0
+        av_jobs_count = 0
+        worker_jobs = call_any("miner", "WorkerJobs", None)["result"]
+        for key, jobs in worker_jobs.items():
+            # Miner
+            if key == "0":
+                continue
+            # Worker
+            for job in jobs:
+                cur_jobs_count += 1
+                if "precommit" in job["Task"]:
+                    pre_jobs_count += 1
+            av_jobs_count += parallel_jobs - cur_jobs_count
+        logging.info("PreCommit jobs: " + str(pre_jobs_count))
 
-    # Check wallet balance
-    def_wallet = call_any("daemon", "WalletDefaultAddress", None)["result"]
-    def_balance_verbose = call_any("daemon", "WalletBalance", [def_wallet])["result"]
-    def_balance = int(int(def_balance_verbose)/(10**18))
-    logging.info("Available balance: " + str(def_balance))
+        # Check wallet balance
+        def_wallet = call_any("daemon", "WalletDefaultAddress", None)["result"]
+        def_balance_verbose = call_any("daemon", "WalletBalance", [def_wallet])["result"]
+        def_balance = int(int(def_balance_verbose)/(10**18))
+        logging.info("Available balance: " + str(def_balance))
 
-    # If balance - precommit > auto_pledge_balance, lol
-    count = def_balance - pre_jobs_count
-    if count > auto_pledge_balance :
-        for i in range(count):
-            # Remaining workload
-            if av_jobs_count < 1:
-                break
-            logging.info("Make a sector.")
-            sp.call(["./lotus-miner", "sectors", "pledge"])
-            av_jobs_count -= 1
-            # Wait for add piece
-            time.sleep(900)
+        # If balance - precommit > auto_pledge_balance, lol
+        count = def_balance - pre_jobs_count
+        if count > auto_pledge_balance:
+            for i in range(count):
+                # Remaining workload
+                if av_jobs_count < 1:
+                    break
+                logging.info("Make a sector.")
+                sp.call(["./lotus-miner", "sectors", "pledge"])
+                av_jobs_count -= 1
+                # Wait for add piece
+                time.sleep(900)
+        time.sleep(60)
