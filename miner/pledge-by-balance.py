@@ -71,9 +71,9 @@ if __name__ == "__main__":
         logging.info("Miner balance: " + str(miner_balance))
         if miner_balance > auto_withdraw_balance:
             # Withdraw balance, there is no RPC method
-            msg_id_verbose = sp.Popen(["./lotus-miner", "actor", "withdraw"], stdout=sp.PIPE, stderr=sp.PIPE).stdout
+            msg_id_verbose = sp.Popen(["./lotus-miner", "actor", "withdraw"], stdout=sp.PIPE, stderr=sp.PIPE)
             msg_id_verbose.wait()
-            msg_id = msg_id_verbose.readline().decode(encoding='UTF-8').strip().split(" ")[-1]
+            msg_id = msg_id_verbose.stdout.readline().decode(encoding='UTF-8').strip().split(" ")[-1]
             # Wait a moment please
             sp.call(["./lotus", "state", "wait-msg", msg_id])
 
@@ -109,8 +109,8 @@ if __name__ == "__main__":
                     logging.warning("Worker overload, touch fish.")
                     break
                 sp.call(["./lotus-miner", "sectors", "pledge"])
-                logging.info("Make a sector. (TODO: {todo}, Available: {av})".format(todo=i, av=av_jobs_count))
+                logging.info("Make a sector. (TODO: {todo}, Available: {av})".format(todo = count - i, av = av_jobs_count))
                 av_jobs_count -= 1
                 # Wait for add piece
-                time.sleep(300)
+                time.sleep(600)
         time.sleep(60)
