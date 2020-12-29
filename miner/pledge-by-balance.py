@@ -64,13 +64,13 @@ def call_any(target, method, params):
 
 if __name__ == "__main__":
     while True:
-        # Check if miner's balance is ready for withdraw
+        # Check if miner balance is ready for withdraw
         miner_wallet = call_any("miner", "ActorAddress", None)["result"]
         miner_balance_verbose = call_any("daemon", "StateMinerAvailableBalance", [miner_wallet, []])["result"]
         miner_balance = int(int(miner_balance_verbose)/(10**18))
         logging.info("Miner balance: " + str(miner_balance))
         if miner_balance > auto_withdraw_balance:
-            # Withdraw balance, there is no RPC method
+            # Withdraw balance, there seems no RPC method
             msg_id_verbose = sp.Popen(["./lotus-miner", "actor", "withdraw"], stdout=sp.PIPE, stderr=sp.PIPE)
             msg_id_verbose.wait()
             msg_id = msg_id_verbose.stdout.readline().decode(encoding='UTF-8').strip().split(" ")[-1]
@@ -92,6 +92,7 @@ if __name__ == "__main__":
                 if "precommit" in job["Task"]:
                     pre_jobs_count += 1
             av_jobs_count += parallel_jobs - cur_jobs_count
+            cur_jobs_count = 0
         logging.info("PreCommit jobs: " + str(pre_jobs_count))
 
         # Check wallet balance
@@ -106,11 +107,11 @@ if __name__ == "__main__":
             for i in range(count):
                 # Remaining workload
                 if av_jobs_count < 1:
-                    logging.warning("Worker overload, touch fish.")
                     break
                 sp.call(["./lotus-miner", "sectors", "pledge"])
                 logging.info("Make a sector. (TODO: {todo}, Available: {av})".format(todo = count - i, av = av_jobs_count))
                 av_jobs_count -= 1
                 # Wait for add piece
-                time.sleep(600)
+                time.sleep(300)
+        logging.warning("Worker at overload, sleeping.")
         time.sleep(60)
