@@ -2,9 +2,12 @@
 
 HOST_IP=$(ip route get 255.255.255.255 | grep -Po '(?<=src )(\d{1,3}.){4}' | xargs)
 
-sed -i "s/<HOST_IP>/$HOST_IP/g" systemd-worker-env.conf
+sed -i "s/__IP__/$HOST_IP/g" systemd-worker-env.conf
 
-cp -f lotus-worker.service /etc/systemd/system/lotus-worker.service
+cp filecash-worker.service /etc/systemd/system/filecash-worker.service
+
+mkdir /tank1/filecash
+mkdir /tank1/filecash-tmp
 
 systemctl daemon-reload
-systemctl enable lotus-worker
+systemctl enable filecash-worker

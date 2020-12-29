@@ -12,9 +12,9 @@ apt install -y mesa-opencl-icd ocl-icd-opencl-dev ntpdate ubuntu-drivers-common 
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 ntpdate time.apple.com
 
-echo 'options sunrpc tcp_slot_table_entries=128' >> /etc/modprobe.d/sunrpc.conf
-echo 'options sunrpc tcp_max_slot_table_entries=128' >>  /etc/modprobe.d/sunrpc.conf
-sysctl -w sunrpc.tcp_slot_table_entries=128
+# echo 'options sunrpc tcp_slot_table_entries=128' >> /etc/modprobe.d/sunrpc.conf
+# echo 'options sunrpc tcp_max_slot_table_entries=128' >>  /etc/modprobe.d/sunrpc.conf
+# sysctl -w sunrpc.tcp_slot_table_entries=128
 
 ulimit -n 1048576
 sed -i "/nofile/d" /etc/security/limits.conf
