@@ -9,7 +9,7 @@ import logging
 
 auto_withdraw_balance = 5
 auto_pledge_balance = 5
-parallel_jobs = 20
+parallel_jobs = 30
 
 daemon_url = "http://127.0.0.1:1234/rpc/v0"
 daemon_token = "your daemon token here"
@@ -93,7 +93,19 @@ if __name__ == "__main__":
                     pre_jobs_count += 1
             av_jobs_count += parallel_jobs - cur_jobs_count
             cur_jobs_count = 0
-        logging.info("PreCommit jobs: " + str(pre_jobs_count))
+        logging.info("Worker jobs: " + str(av_jobs_count))
+        logging.info("Worker PreCommit jobs: " + str(pre_jobs_count))
+
+        # Check sched jobs
+        sched_pre_jobs_count = 0
+        sched_cur_jobs_count = 0
+        sched_worker_jobs = call_any("miner", "SealingSchedDiag", None)["result"]
+        for job in sched_worker_jobs["Requests"]:
+            sched_cur_jobs_count += 1
+            if "precommit" in job["TaskType"] or "addpiece" in job["TaskType"]:
+                sched_pre_jobs_count += 1
+        logging.info("Sched jobs: " + str(sched_cur_jobs_count))
+        logging.info("Sched PreCommit jobs: " + str(sched_pre_jobs_count))
 
         # Check wallet balance
         def_wallet = call_any("daemon", "WalletDefaultAddress", None)["result"]
@@ -102,7 +114,9 @@ if __name__ == "__main__":
         logging.info("Available balance: " + str(def_balance))
 
         # If balance - precommit > auto_pledge_balance, lol
-        count = def_balance - pre_jobs_count
+        count = def_balance - pre_jobs_count - sched_pre_jobs_count
+        # Also subtract the planned tasks
+        av_jobs_count -= sched_cur_jobs_count
         if count > auto_pledge_balance:
             for i in range(count):
                 # Remaining workload
@@ -111,7 +125,6 @@ if __name__ == "__main__":
                 sp.call(["./lotus-miner", "sectors", "pledge"])
                 logging.info("Make a sector. (TODO: {todo}, Available: {av})".format(todo = count - i, av = av_jobs_count))
                 av_jobs_count -= 1
-                # Wait for add piece
-                time.sleep(300)
+                time.sleep(10)
         logging.warning("Worker at overload, sleeping.")
-        time.sleep(60)
+        time.sleep(25200)
