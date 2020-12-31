@@ -9,7 +9,7 @@ import logging
 
 auto_withdraw_balance = 5
 auto_pledge_balance = 5
-parallel_jobs = 30
+parallel_jobs = 240
 
 daemon_url = "http://127.0.0.1:1234/rpc/v0"
 daemon_token = "your daemon token here"
@@ -80,7 +80,6 @@ if __name__ == "__main__":
         # Check current jobs
         pre_jobs_count = 0
         cur_jobs_count = 0
-        av_jobs_count = 0
         worker_jobs = call_any("miner", "WorkerJobs", None)["result"]
         for key, jobs in worker_jobs.items():
             # Miner
@@ -91,9 +90,7 @@ if __name__ == "__main__":
                 cur_jobs_count += 1
                 if "precommit" in job["Task"]:
                     pre_jobs_count += 1
-            av_jobs_count += parallel_jobs - cur_jobs_count
-            cur_jobs_count = 0
-        logging.info("Worker jobs: " + str(av_jobs_count))
+        logging.info("Worker jobs: " + str(cur_jobs_count))
         logging.info("Worker PreCommit jobs: " + str(pre_jobs_count))
 
         # Check sched jobs
@@ -116,7 +113,7 @@ if __name__ == "__main__":
         # If balance - precommit > auto_pledge_balance, lol
         count = def_balance - pre_jobs_count - sched_pre_jobs_count
         # Also subtract the planned tasks
-        av_jobs_count -= sched_cur_jobs_count
+        av_jobs_count = parallel_jobs - cur_jobs_count - sched_cur_jobs_count
         if count > auto_pledge_balance:
             for i in range(count):
                 # Remaining workload
@@ -125,6 +122,6 @@ if __name__ == "__main__":
                 sp.call(["./lotus-miner", "sectors", "pledge"])
                 logging.info("Make a sector. (TODO: {todo}, Available: {av})".format(todo = count - i, av = av_jobs_count))
                 av_jobs_count -= 1
-                time.sleep(10)
+                time.sleep(2)
         logging.warning("Worker at overload, sleeping.")
-        time.sleep(25200)
+        time.sleep(60)
