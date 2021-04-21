@@ -169,7 +169,9 @@ main() {
         find_good_path
 
         if [ -z "$TARGET_PATH_BEST" ]; then
-            _error "Can't find any good path."
+            _warn "Can't find any good path."
+            sleep 10m
+            continue
         else
             TARGET_PATH=$TARGET_PATH_BEST
         fi
